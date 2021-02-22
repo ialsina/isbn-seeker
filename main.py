@@ -3,6 +3,7 @@ import json
 
 from book import Book, Library
 from fields import fields
+from timer import Timer
 
 class JsonError(Exception):
     pass
@@ -97,15 +98,20 @@ def process_value(value, careful=True):
         return process_single(value, careful)
 
 
-def fetch(isbn):
+def fetch(isbn, tim=Timer(False)):
     global response
 
+    tim.lap()
+
     response = requests.request("GET", url.format('isbn/'+isbn))
+
 
     if response.status_code == 404:
         raise NotFoundError
     elif response.status_code != 200:
         raise RequestError(status_code)
+
+    tim.lap()
 
     try:
         data1 = json.loads(response.text)
@@ -113,13 +119,13 @@ def fetch(isbn):
         raise JsonError
     data = {}
 
+    tim.lap()
+
     for (key, val) in data1.items():
 
-        #print('\n=====\n{}'.format(key))
-        #print(val)
-
         data[key] = process_value(val, key in fields)
-        #print(data[key])
+
+        tim.lap()
 
     return data
 
@@ -137,9 +143,11 @@ def manual():
     raise NotImplementedError
 
 
-def main():
+def main(library=None):
 
-    library = Library()
+    if library is None:
+        library = Library()
+
     inp = None
     while True:
 
@@ -160,10 +168,12 @@ def main():
                 data = manual()
         
         else:
-            book = Book(**fetch(inp))
+            book = Book(**data)
 
             if ask(book):
                 library.add(book)
+
+    library.save()
 
     return library
 
