@@ -68,7 +68,7 @@ class Book:
             self.data[key] = val
 
         if self.get('weight'):
-
+            pass
 
     def __repr__(self):
         return '\t{} {}\n\t{}\n\t{}\n\t'.format(

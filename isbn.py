@@ -130,7 +130,7 @@ def fetch(isbn, tim=Timer(False)):
     return data
 
 
-def ask(book):
+def ask_book(book):
     print('='*70)
     print(book)
     if yesno('\tAdd to library?', 'y'):
@@ -141,6 +141,24 @@ def ask(book):
 
 def manual():
     raise NotImplementedError
+
+
+def get_data(isbn):
+    try:
+        data = fetch(isbn)
+    except JsonError as e:
+        print('Unexpected JSON error', e)
+        return {}
+    except RequestError as e:
+        print('Unexpected exit status', e)
+        return {}
+    except NotFoundError:
+        print('Book not found')
+        if yesno('Manual input?'):
+            data = manual()
+    else:
+        return data
+
 
 
 def main(library=None):
@@ -156,22 +174,15 @@ def main(library=None):
         if inp in ['', 'q']:
             break
 
-        try:
-            data = fetch(inp)
-        except JsonError as e:
-            print('Unexpected JSON error', e)
-        except RequestError as e:
-            print('Unexpected exit status', e)
-        except NotFoundError:
-            print('Book not found')
-            if yesno('Manual input?'):
-                data = manual()
-        
-        else:
-            book = Book(**data)
+        data = get_data(inp)
 
-            if ask(book):
-                library.add(book)
+        if len(data) == 0:
+            continue
+
+        book = Book(**data)
+
+        if ask_book(book):
+            library.add(book)
 
     library.save()
 

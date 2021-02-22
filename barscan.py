@@ -31,6 +31,17 @@ def shootpic(url=None, ip=None):
     
     return img
 
+
+def get_pic(url=None, ip=None):
+
+    url = url or get_url(ip)
+
+    imgResp = urllib.request.urlopen(url)
+    imgNp = np.asarray(bytearray(imgResp.read()), dtype=np.uint8)
+    img = cv2.imdecode(imgNp,-1)
+
+    return img
+
 def get_url(ip=None):
     ip = ip or input("Input camera IP: >")
     return 'http://{}/shot.jpg'.format(ip)
@@ -38,14 +49,9 @@ def get_url(ip=None):
 
 def get_barcode(img):
     barcodes = pyzbar.decode(img)
-    output = [el.data for el in barcodes]
+    output = [str(int(el.data)) for el in barcodes]
 
-    if len(output) == 0:
-        return None
-    elif len(output) == 1:
-        return output[0]
-    else:
-        return output
+    return output
 
 
 if __name__ == '__main__':
