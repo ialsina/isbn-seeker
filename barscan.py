@@ -43,24 +43,38 @@ def get_pic(url=None, ip=None):
     return img
 
 
+def test_url(url):
+    try:
+        get_pic(url)
+        return True
+    except urllib.request.URLError:
+        return False
+
+def get_url(ip):
+    return 'http://{}/shot.jpg'.format(ip)
+
+
+def test_ip(ip):
+    return test_url(get_url(ip))
+
+
+
 def ask_url(ip=None):
 
     success = False
 
     while not success:
         ip = ip = input("Input camera IP: >")
-        url = 'http://{}/shot.jpg'.format(ip)
+        url = get_url(ip)
 
         if ip in ['q', 'x']:
             raise KeyboardInterrupt
 
-        try:
-            get_pic(url)
-            success = True
-            print('Camera status: online')
-        except urllib.request.URLError:
-            ip = None
-            print('Invalid IP. Please retry')
+        success = test_url(url)
+        print('Invalid IP. Please retry')
+        ip = None
+
+    print('Camera status: online')
 
     return url
 

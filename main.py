@@ -86,6 +86,9 @@ def main():
                 print('Not available')
                 continue
 
+        if data is None:
+            continue
+
         book = Book(**data)
 
         if ask_book(book):

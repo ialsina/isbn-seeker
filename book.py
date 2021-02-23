@@ -78,6 +78,13 @@ class Book:
                     self.get('publishers')
                     )
 
+    def print(self):
+        for key, val in self.data.items():
+            try:
+                print('{:>30s}: {:<45}'.format(key, val))
+            except:
+                continue
+
     def get(self, query, otherwise=''):
         output = self.data.get(query)
         if output is None:
