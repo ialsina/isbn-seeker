@@ -160,21 +160,30 @@ def get_data(isbn):
         return data
 
 
+def ask_isbn():
+    inp = input('Input ISBN: >')
+
+    if inp in ['', 'q']:
+        raise KeyboardInterrupt
+
+    return inp.replace('-','').replace(' ','')
+
+
+
 
 def main(library=None):
 
     if library is None:
         library = Library()
 
-    inp = None
     while True:
 
-        inp = input('Input ISBN: >')
-
-        if inp in ['', 'q']:
+        try:
+            isbn = ask_isbn()
+        except KeyboardInterrupt:
             break
 
-        data = get_data(inp)
+        data = get_data(isbn)
 
         if len(data) == 0:
             continue

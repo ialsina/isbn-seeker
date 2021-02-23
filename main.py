@@ -6,41 +6,92 @@ from book import Book, Library
 from fields import fields
 from timer import Timer
 
-from isbn import get_data, ask_book
-from barscan import get_barcode, get_pic, get_url
+from isbn import get_data, ask_book, fetch
+from barscan import get_barcode, get_pic, ask_url
+
+ex = None
+def ask_action():
+    inp = None
+    print('Input action:\n\tISBN [s]can\n\t[i]SBN manual input\n\t[b]ook details manual input\n\tE[x]it')
+    inp = input('\n\t>')
+    while inp not in ['s', 'i', 'b', 'x']:
+        print('Invalid action')
+        inp = input('\n\t>')
+
+    return {'s': 1, 'm': 2, 'b': 3, 'x': 0}.get(inp)
+
+
+def readcam(url):
+
+    print('Reading', end='\r')
+
+    try:
+        while True:
+
+            barcode = get_barcode(get_pic(url))
+
+            if len(barcode) == 1:
+                print('Barcode found:', barcode[0])
+                return barcode[0]
+
+            time.sleep(0.5)
+
+    except KeyboardInterrupt:
+        print('Reading stopped')
+        raise KeyboardInterrupt
 
 
 
-def main(library=None):
+def main():
+
+    global library
 
     if library is None:
         library = Library()
 
-    url = get_url()
+    try:
+        url = ask_url()
+    except KeyboardInterrupt:
+        return
 
-    inp = None
     while True:
 
-        barcode = get_barcode(get_pic(url))
+        action = ask_action()
 
-        if len(barcode) == 1:
-            print('Barcode found:', barcode[0])
-            data = get_data(barcode[0])
-        else:
-            continue
+        if action == 0:
+            print('Camera status: offline')
+            print('Exit program')
+            break
 
-        if len(data) == 0:
-            continue
+        elif action == 1:
+            try:
+                isbn = readcam(url)
+                data = get_data(isbn)
+            except KeyboardInterrupt:
+                continue
+
+        elif action == 2:
+            try:
+                isbn = ask_isbn()
+                data = get_data(isbn)
+            except KeyboardInterrupt:
+                continue
+
+        elif action == 3:
+            try:
+                data = manual()
+            except KeyboardInterrupt:
+                continue
+            except NotImplementedError:
+                print('Not available')
+                continue
 
         book = Book(**data)
 
         if ask_book(book):
             library.add(book)
 
-        time.sleep(0.5)
-
-    return library
-
 if __name__ == '__main__':
 
-    library = main()
+    library = None
+    main()
