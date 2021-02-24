@@ -28,7 +28,7 @@ def load():
     path = abspath(join(dirname(__file__), pardir, 'data', 'library.pickle'))
 
     if isfile(path):
-        loading = mb.askyesno(title='Library', message='Load library from file?')
+        loading = mb.askyesno(title='Load', message='Load library from file?')
         if loading:
             with open(path, 'rb') as f:
                 library = pickle.load(f)
@@ -39,6 +39,11 @@ def load():
         library = Library()
 
     return library
+
+
+def save():
+    import tkinter.messagebox as mb
+    return mb.askyesno(title='Save', message='Save library to file?')
 
 
 def entrywrite(entry, text):
@@ -268,7 +273,6 @@ class App(tk.Frame):
     def modeAdd(self):
         self.mode = 0
         self.buttons['ipEnt'].config(state ='normal')
-        self.buttons['ipBut'].config(text = 'Go')
         self.buttons['ipBut'].config(state ='normal')
         self.buttons['mode'].config(text = 'ADD')
         self.navigate(4)
@@ -371,6 +375,9 @@ class App(tk.Frame):
             if key in JSON2FORM:
                 entry = JSON2FORM[key]
                 if entry in self.entries:
+                    print(entry, val)
+                    if isinstance(val, list):
+                        val = ', '.join(val)
                     entrywrite(self.entries[entry], val)
                 elif entry in self.entries_loc:
                     entrywrite(self.entries_loc[entry], val)
@@ -414,7 +421,8 @@ class App(tk.Frame):
         self._update_position()
 
     def savequit(self):
-        self.library.save()
+        if save():
+            self.library.save()
         quit(self.master)
 
 
@@ -425,8 +433,8 @@ class App(tk.Frame):
             if len(barcode) == 1:
                 print('\a')
                 entrywrite(self.entries['ISBN'], barcode)
-                self.update()
                 self.info['data'].config(text='ISBN found. Searching book data...')
+                self.update()
                 self.isbnGo()
                 self.connected = 2
 

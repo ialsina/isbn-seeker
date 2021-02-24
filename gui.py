@@ -16,4 +16,4 @@ if __name__ == '__main__':
             myapp.update()
             myapp.capture()
         except tk.TclError:
-            pass
+            break
