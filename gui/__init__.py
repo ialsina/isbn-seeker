@@ -1,1 +1,1 @@
-from .app import App, Screen
+from .app import App

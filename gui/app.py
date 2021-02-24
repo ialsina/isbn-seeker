@@ -6,7 +6,7 @@ import json
 import time
 
 from .context import Book, Library, fields, Timer, get_data_gui, ask_book, fetch, \
-    get_barcode, get_pic, ask_url
+    test_ip, ip2barcode
 
 from .fields import DATA_FIELDS, LOC_FIELDS, JSON2FORM, FORM2JSON, SEPARATOR
 
@@ -132,10 +132,11 @@ class App(tk.Frame):
 
         self.iterator = None
         self.tempdata = None
+        self.ip = None
         self.library = load()
         self._update_library()
 
-        self.connected = False
+        self.connected = 0
         self.mode = None
         if len(self.library) == 0:
             self.modeAdd()
@@ -217,6 +218,9 @@ class App(tk.Frame):
 
     def save(self):
 
+        if self.connected == 2:
+            self.connected = 1
+
         if self.mode == 0:
             self._prepare_data()
             self.library.data_add(self.tempdata)
@@ -263,7 +267,6 @@ class App(tk.Frame):
 
     def modeAdd(self):
         self.mode = 0
-        self.info['camera'].config(text = 'Enter camera IP and click Go.')
         self.buttons['ipEnt'].config(state ='normal')
         self.buttons['ipBut'].config(text = 'Go')
         self.buttons['ipBut'].config(state ='normal')
@@ -279,10 +282,15 @@ class App(tk.Frame):
         for entry in self.entries.values():
             entry.delete(0, tk.END)
         
-        if self.connected:
+        if self.connected == 1:
             self.info['data'].config(text='Scanning barcode.')
         else:
             self.info['data'].config(text='Introduce IBAN and click Search.')
+
+        if self.connected == 0:
+            self.info['camera'].config(text = 'Enter camera IP and click Go.')
+        else:
+            self.info['camera'].config(text='Camera online.')
 
         if len(self.library) == 0:
             self.buttons['mode'].config(state='disabled')
@@ -304,12 +312,11 @@ class App(tk.Frame):
         self.navigate(1)
         self.buttons['idBut'].config(state='normal')
         self.buttons['idEnt'].config(state='normal')
-        self.screen = None
 
         for but in ['first', 'last', 'prev', 'next', 'idBut']:
             self.buttons[but].config(state='normal')
 
-        self.connected = False
+        self.connected = 0
         self._update_position()
 
     def toggleConnection(self):
@@ -321,34 +328,28 @@ class App(tk.Frame):
 
     def connect(self):
         self.info['camera'].config(text = 'Connecting...')
-        self.ip = self.buttons['ipEnt'].get()
-        if test_ip(self.ip):
+        ip = self.buttons['ipEnt'].get()
+        if test_ip(ip):
             self.info['camera'].config(text = 'Camera online.')
+            self.info['data'].config(text = 'Scanning barcode.')
             self.buttons['ipBut'].config(text = 'ON')
-            self.screen = tk.Toplevel()
-            self.connected = True
+            self.connected = 1
+            self.ip = ip
         else:
             self.info['camera'].config(text = 'Invalid IP. Please retry.')
+            self.ip = None
 
 
     def disconnect(self):
         self.info['camera'].config(text = 'Camera offline.')
+        self.info['data'].config(text = 'Introduce IBAN and click Search.')
         self.buttons['ipBut'].config(text = 'OFF')
-        self.screen = None
-        self.connected = False
+        self.connected = 0
 
 
-    def refresh(self):
-        if self.mode == 0 and self.connected:
-            self.array = get_pic(ip=self.ip)
-            self.load = Image.fromarray(self.array)
-            self.render = ImageTk.PhotoImage(self.load)
-
-            image = tk.Label(self.screen, image=self.render)
-            image.place(x=0, y=0)
 
     def isbnGo(self):
-        self.info['data'].config(text='Searching ISBN...')
+        self.info['data'].config(text='Searching book data...')
 
         isbn_in = self.entries['ISBN'].get()
         isbn = isbn_in.replace('-','').replace(' ','')
@@ -417,14 +418,17 @@ class App(tk.Frame):
         quit(self.master)
 
 
+    def capture(self):
+        if self.connected == 1:
+            barcode = ip2barcode(self.ip)
 
-class Screen(tk.Frame):
-    def __init__(self, master):
-        super().__init__(master)
-
-        self.master = master
-        self.pack()
-
+            if len(barcode) == 1:
+                print('\a')
+                entrywrite(self.entries['ISBN'], barcode)
+                self.update()
+                self.info['data'].config(text='ISBN found. Searching book data...')
+                self.isbnGo()
+                self.connected = 2
 
 
 if __name__ == '__main__':

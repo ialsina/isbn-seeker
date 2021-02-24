@@ -86,6 +86,10 @@ def get_barcode(img):
     return output
 
 
+def ip2barcode(ip):
+    return get_barcode(get_pic(ip=ip))
+
+
 if __name__ == '__main__':
     img = shootpic(ip=MAIN_IP)
     barcode = get_barcode(img)
