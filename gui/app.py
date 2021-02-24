@@ -217,9 +217,10 @@ class App(tk.Frame):
         if isbn_type == 10:
             self.tempdata[FORM2JSON['ISBN'][0]] = isbn
         elif isbn_type == 13:
-            self.tempdata[FORM2JSON['ISBN'][1]] = isbn_type
+            self.tempdata[FORM2JSON['ISBN'][1]] = isbn
         elif isbn_type == 0:
-            pass
+            self.tempdata[FORM2JSON['ISBN'][0]] = ''
+            self.tempdata[FORM2JSON['ISBN'][1]] = ''
         else:
             raise RuntimeError('ISBN')
             
@@ -253,7 +254,7 @@ class App(tk.Frame):
 
         self.tempdata = None
         self._update_position()
-        self._update_library()
+        self._update_library(self.iterator.get()+1)
 
 
     def restore(self):
