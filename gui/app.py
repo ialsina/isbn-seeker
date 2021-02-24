@@ -215,7 +215,10 @@ class App(tk.Frame):
         for key, val in self.entries.items():
             if key in ['Title', 'ISBN']:
                 continue
-            self.tempdata[FORM2JSON.get(key, key)] = val.get()
+            value = val.get()
+            if ',' in value:
+                value = [el.strip() for el in value.split(',')]
+            self.tempdata[FORM2JSON.get(key, key)] = value
 
         for key, val in self.entries_loc.items():
             self.tempdata[FORM2JSON.get(key, key)] = val.get()
