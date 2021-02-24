@@ -146,6 +146,7 @@ class App(tk.Frame):
         self.tempval = None
         self.ip = None
         self.moving = False
+        self.unchanged = True
         self.library = load()
         self._update_library()
 
@@ -160,7 +161,7 @@ class App(tk.Frame):
     def _update_library(self, cur=None):
         self.iterator = iter(self.library)
         if cur is not None:
-            assert 1 < cur <= len(self.library)
+            assert 1 <= cur <= len(self.library)
             self.iterator.set(cur-1)
 
 
@@ -239,6 +240,9 @@ class App(tk.Frame):
 
     def store(self):
 
+        self.unchanged = False
+        self.tempdata = None
+
         if self.connected == 2:
             self.connected = 1
 
@@ -278,7 +282,7 @@ class App(tk.Frame):
             self.library.delete(del_id - 1)
             entrywrite(self.buttons['idEnt'], new_id)
             self.navigate(5)
-            self.modeEdit()
+            self.modeEdit(to_first = False)
 
 
     def move(self):
@@ -406,13 +410,17 @@ class App(tk.Frame):
         if isbn != isbn_in:
             entrywrite(self.entries['ISBN'], isbn)
 
-        self.tempdata = get_data_gui(isbn)
+        try:
+            self.tempdata, exit = get_data_gui(isbn)
+        except TypeError:
+            print("Unexpeced error")
 
         if self.tempdata:
             self.info['data'].config(text='Book found. Click Save to confirm.')
             self.dumpData(self.tempdata)
         else:
             self.info['data'].config(text='Book not found. Enter details manually.')
+            print(exit)
 
 
     def dumpData(self, data):
@@ -466,10 +474,12 @@ class App(tk.Frame):
 
     def save(self):
         self.library.save()
+        self.unchanged = True
 
     def savequit(self):
-        if save():
-            self.library.save()
+        if not self.unchanged:
+            if save():
+                self.library.save()
         quit(self.master)
 
 
@@ -478,7 +488,7 @@ class App(tk.Frame):
             barcode = ip2barcode(self.ip)
 
             if len(barcode) == 1:
-                print('\a')
+                print('\a', end='\r')
                 entrywrite(self.entries['ISBN'], barcode)
                 self.info['data'].config(text='ISBN found. Searching book data...')
                 self.update()

@@ -72,8 +72,6 @@ def refetch(entry):
 
 def process_single(entry, careful=True):
 
-    output = None
-
     if isinstance(entry, dict):
         if 'key' in entry and careful:
             return refetch(entry)
@@ -113,16 +111,16 @@ def fetch(isbn, tim=Timer(False)):
 
 
     if response.status_code == 404:
-        raise NotFoundError
+        raise NotFoundError('Book not found')
     elif response.status_code != 200:
-        raise RequestError(status_code)
+        raise RequestError('Response error', status_code)
 
     tim.lap()
 
     try:
         data1 = json.loads(response.text)
     except:
-        raise JsonError
+        raise JsonError('Error on JSON load')
     data = {}
 
     tim.lap()
@@ -166,17 +164,23 @@ def get_data(isbn):
         return data
 
 
-def get_data_gui(isbn):
-    try:
-        data = fetch(isbn)
-    except JsonError as e:
-        return {}
-    except RequestError as e:
-        return {}
-    except NotFoundError:
-        return {}
-    else:
-        return data
+def get_data_gui(isbn, tries=3):
+    for i in range(1, tries+1):
+        try:
+            data = fetch(isbn)
+            return (data, 0)
+        except JsonError as e:
+            if i == tries:
+                return ({}, e)
+        except RequestError as e:
+            if i == tries:
+                return ({}, e)
+        except NotFoundError as e:
+            if i == tries:
+                return ({}, e)
+        except Exception as e:
+            if i == tries:
+                return ({}, e)
 
 
 def ask_isbn():
