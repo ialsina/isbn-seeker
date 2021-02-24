@@ -7,9 +7,14 @@ class Library:
 
         self.library = []
 
+    def __len__(self):
+        return len(self.library)
+
     def __getitem__(self, item):
         return self.library[item]
 
+    def __iter__(self):
+        return LibraryIterator(self)
 
     def add(self, book):
         assert isinstance(book, Book)
@@ -58,6 +63,50 @@ class Library:
     def save(self):
         self.export_csv()
         self.export_obj()
+
+
+
+class LibraryIterator:
+    def __init__(self, library):
+        self._index = 0
+        self._library = library
+    
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        if self._index < len(self._library):
+            x = self._index
+            self._index += 1
+            return self._library[x] 
+        else:
+            raise StopIteration
+
+    def first(self):
+        self._index = 0
+        self.ret()
+
+    def last(self):
+        self._index = len(self._library) - 1
+        self.ret()
+
+    def prev(self):
+        if self._index > 0:
+            self._index -= 1
+            self.ret()
+        else:
+            raise StopIteration
+
+    def next(self):
+        if self._index < len(self._library) - 1:
+            self._index += 1
+            self.ret()
+        else:
+            raise StopIteration
+
+    def ret(self):
+        return self._library[self._index]
+
 
 
 class Book:
