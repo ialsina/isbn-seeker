@@ -2,12 +2,9 @@ import requests
 import json
 import time
 
-from book import Book, Library
-from fields import fields
-from timer import Timer
+from include import Book, Library, fields, Timer, get_data, ask_book, fetch, \
+    get_barcode, get_pic, ask_url
 
-from isbn import get_data, ask_book, fetch
-from barscan import get_barcode, get_pic, ask_url
 
 ex = None
 def ask_action():
