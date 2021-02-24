@@ -246,6 +246,9 @@ class App(tk.Frame):
 
 
     def delete(self):
+
+        if self.connected == 2:
+            self.connected = 1
         
         if self.mode == 0:
             self.modeAdd()
@@ -289,7 +292,7 @@ class App(tk.Frame):
         if self.connected == 1:
             self.info['data'].config(text='Scanning barcode.')
         else:
-            self.info['data'].config(text='Introduce IBAN and click Search.')
+            self.info['data'].config(text='Introduce ISBN and click Search.')
 
         if self.connected == 0:
             self.info['camera'].config(text = 'Enter camera IP and click Go.')
@@ -375,7 +378,6 @@ class App(tk.Frame):
             if key in JSON2FORM:
                 entry = JSON2FORM[key]
                 if entry in self.entries:
-                    print(entry, val)
                     if isinstance(val, list):
                         val = ', '.join(val)
                     entrywrite(self.entries[entry], val)
