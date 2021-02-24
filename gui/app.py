@@ -1,5 +1,6 @@
 import tkinter as tk
 
+
 import requests
 import json
 import time
@@ -14,6 +15,30 @@ from PIL import Image, ImageTk
 
 def quit(process):
     process.destroy()
+
+
+
+def load():
+    from os import pardir
+    from os.path import abspath, join, dirname, isfile
+    import pickle
+    import tkinter.messagebox as mb
+
+
+    path = abspath(join(dirname(__file__), pardir, 'data', 'library.pickle'))
+
+    if isfile(path):
+        loading = mb.askyesno(title='Library', message='Load library from file?')
+        if loading:
+            with open(path, 'rb') as f:
+                library = pickle.load(f)
+        else:
+            library = Library()
+
+    else:
+        library = Library()
+
+    return library
 
 
 def entrywrite(entry, text):
@@ -105,24 +130,21 @@ class App(tk.Frame):
         self.info['data'].pack(side=tk.TOP, expand=tk.YES, fill=tk.X)
 
 
-        self.library = None
         self.iterator = None
         self.tempdata = None
+        self.library = load()
         self._update_library()
 
         self.connected = False
         self.mode = None
-        self.modeAdd()
+        if len(self.library) == 0:
+            self.modeAdd()
+        else:
+            self.modeEdit()
 
 
     def _update_library(self):
-        if self.library is None:
-            self.library = Library()
-            self.info['data'].config(text='Library online.')
-
-
         self.iterator = iter(self.library)
-
 
 
     def addentry(self, master, entries, field, width_label=12, width_entry=None, padx=10, pady=5, multiple=False):

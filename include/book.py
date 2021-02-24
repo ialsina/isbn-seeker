@@ -1,3 +1,5 @@
+from os import pardir
+from os.path import join, abspath, dirname
 import csv
 import pickle
 
@@ -71,7 +73,8 @@ class Library:
                 fields.add(field)
 
         fields = list(fields)
-        with open('library.csv', 'w') as f:
+        path = abspath(join(dirname(__file__), pardir, 'data', 'library.csv'))
+        with open(path, 'w') as f:
             writer = csv.writer(f, delimiter=';', quotechar='"')
             writer.writerow(fields)
             for book in self.library:
@@ -81,7 +84,8 @@ class Library:
 
 
     def export_obj(self):
-        with open('library.pickle', 'wb') as f:
+        path = abspath(join(dirname(__file__), pardir, 'data', 'library.pickle'))
+        with open(path, 'wb') as f:
             pickle.dump(self, f)
 
 
