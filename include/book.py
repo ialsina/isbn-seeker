@@ -73,20 +73,22 @@ class Library:
             return found
 
     def export_csv(self):
-        fields = set()
+        from ordered_set import OrderedSet
+
+        fields = OrderedSet(['room', 'module', 'shelf', 'title', 'authors', 'publishers',
+            'subjects', 'isbn_13', 'isbn_10', 'publish_date', 'revision'])
 
         for book in self.library:
             for field in book.data.keys():
                 fields.add(field)
 
-        fields = list(fields)
         path = abspath(join(dirname(__file__), pardir, 'data', 'library.csv'))
         with open(path, 'w') as f:
             writer = csv.writer(f, delimiter=';', quotechar='"')
-            writer.writerow(fields)
-            for book in self.library:
+            writer.writerow(['#'] + list(fields))
+            for i, book in enumerate(self.library):
                 row = [book.get(field,'') for field in fields]
-                writer.writerow(row)
+                writer.writerow([i+1] + row)
 
 
 
