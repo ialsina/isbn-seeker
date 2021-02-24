@@ -4,14 +4,21 @@ import requests
 import json
 import time
 
-from .context import Book, Library, fields, Timer, get_data, ask_book, fetch, \
+from .context import Book, Library, fields, Timer, get_data_gui, ask_book, fetch, \
     get_barcode, get_pic, ask_url
+
+from .fields import DATA_FIELDS, LOC_FIELDS, JSON2FORM, FORM2JSON, SEPARATOR
 
 from PIL import Image, ImageTk
 
 
 def quit(process):
     process.destroy()
+
+
+def entrywrite(entry, text):
+    entry.delete(0, tk.END)
+    entry.insert(0, text)
 
 
 class App(tk.Frame):
@@ -25,11 +32,11 @@ class App(tk.Frame):
         self.buttons = {}
         self.labels = {}
         self.entries = {}
+        self.entries_loc = {}
         self.info = {}
 
-        self.fields_data = ['ISBN', 'Title', 'Author', 'Publisher', 'Subjects']
-        self.fields_location = ['Room', 'Module', 'Shelf']
-        #self.defaults = ('Default 1', 'Default 2', 'Default 3')
+        self.fields_data = DATA_FIELDS
+        self.fields_location = LOC_FIELDS
 
         self.frames['left'] = tk.Frame(self.master)
         self.frames['left'].pack(side = tk.LEFT, expand = tk.YES, fill = tk.BOTH)
@@ -41,10 +48,12 @@ class App(tk.Frame):
         self.frames['buttons11'] = tk.Frame(self.frames['right'])
         self.frames['buttons11'].pack(side = tk.BOTTOM, expand = tk.YES, fill = tk.X)
 
-        self.buttons['prev'] = tk.Button(self.frames['buttons11'], text="◀", command=self.navPrev)
-        self.buttons['next'] = tk.Button(self.frames['buttons11'], text="▶", command=self.navNext)
-        self.buttons['first'] = tk.Button(self.frames['buttons11'], text="◀◀", command=self.navFirst)
-        self.buttons['last'] = tk.Button(self.frames['buttons11'], text="▶▶", command=self.navLast)
+        self.buttons['prev'] = tk.Button(self.frames['buttons11'], text="◀", command=lambda: self.navigate(2))
+        self.buttons['next'] = tk.Button(self.frames['buttons11'], text="▶", command=lambda: self.navigate(3))
+        self.buttons['first'] = tk.Button(self.frames['buttons11'], text="◀◀", command=lambda: self.navigate(1))
+        self.buttons['last'] = tk.Button(self.frames['buttons11'], text="▶▶", command=lambda: self.navigate(4))
+        self.buttons['idBut'] = tk.Button(self.frames['buttons12'], text='Navigate', command=lambda: self.navigate(5))
+
         self.buttons['first'].pack(side=tk.LEFT, expand=tk.YES, fill=tk.X)
         self.buttons['prev'].pack(side=tk.LEFT, expand=tk.YES, fill=tk.X)
         self.buttons['next'].pack(side=tk.LEFT, expand=tk.YES, fill=tk.X)
@@ -52,12 +61,11 @@ class App(tk.Frame):
         self.labels['form'] = tk.Label(self.frames['buttons12'], text="Form: ")
         self.buttons['idEnt'] = tk.Entry(self.frames['buttons12'])
         self.buttons['idLab'] = tk.Label(self.frames['buttons12'], text="/Size")
-        self.buttons['idBut'] = tk.Button(self.frames['buttons12'], text='Go', command=self.navInput)
         self.labels['form'].pack(side=tk.LEFT)
         self.buttons['idEnt'].pack(side=tk.LEFT)
         self.buttons['idLab'].pack(side=tk.LEFT)
         self.buttons['idBut'].pack(side=tk.LEFT)
-        self.buttons['exit'] = tk.Button(self.frames['buttons12'], text="Exit", command=lambda e=self.master: quit(e))
+        self.buttons['exit'] = tk.Button(self.frames['buttons12'], text="EXIT", command=self.savequit)
         self.buttons['exit'].pack(side=tk.LEFT)
 
         self.frames['fields'] = tk.Frame(self.frames['left'])
@@ -66,12 +74,11 @@ class App(tk.Frame):
         loc_row = tk.Frame(self.frames['fields'])
         loc_row.pack(side=tk.TOP, expand=tk.YES, fill =tk.X)
         for field in self.fields_location:
-            self.addentry(loc_row, field, width_label=8, width_entry=5, multiple=True)
+            self.addentry(loc_row, self.entries_loc, field, width_label=8, width_entry=5, multiple=True)
 
-        self.entries['isbn'], self.buttons['isbnBut'] = self.entrybutton(self.frames['fields'], 'ISBN', 'Search', self.isbnGo)
+        self.entries['ISBN'], self.buttons['isbnBut'] = self.entrybutton(self.frames['fields'], 'ISBN', 'Search', self.isbnGo)
         for field in self.fields_data[1:]:
-            self.addentry(self.frames['fields'], field)
-        #self.makeform(self.frames['left'], self.fields_data)
+            self.addentry(self.frames['fields'], self.entries, field)
 
         self.frames['buttons2'] = tk.Frame(self.frames['left'])
         self.frames['buttons2'].pack(side=tk.BOTTOM, expand = tk.YES, fill =tk.X)
@@ -79,7 +86,9 @@ class App(tk.Frame):
         self.buttons['save'] = tk.Button(self.frames['buttons2'], text="Save", command=self.save)
         self.buttons['save'].pack(side=tk.LEFT, fill=tk.X, padx=5, expand=tk.YES)
         self.buttons['restore'] = tk.Button(self.frames['buttons2'], text="Restore", command=self.restore)
-        self.buttons['restore'].pack(side=tk.RIGHT, fill=tk.X, padx=5, expand=tk.YES)
+        self.buttons['restore'].pack(side=tk.LEFT, fill=tk.X, padx=5, expand=tk.YES)
+        self.buttons['delete'] = tk.Button(self.frames['buttons2'], text="Delete", command=self.delete)
+        self.buttons['delete'].pack(side=tk.LEFT, fill=tk.X, padx=5, expand=tk.YES)
 
 
         self.frames['buttons3'] = tk.Frame(self.frames['right'])
@@ -89,39 +98,34 @@ class App(tk.Frame):
         self.buttons['mode'] = tk.Button(self.frames['buttons3'], text="Initial", command=self.toggleMode)
         self.buttons['mode'].pack(side=tk.TOP, fill=tk.X)
 
-        #self.entryip = self.makeform(self.frames['buttons3'], ('Camera IP',)).get('Camera IP')
-        #self.entryip.bind('<Enter>', lambda e=None: self.connect())
         self.buttons['ipEnt'], self.buttons['ipBut'] = self.entrybutton(self.frames['buttons3'], 'Camera IP', 'Go', self.toggleConnection)
-        self.info['camera'] = tk.Label(self.frames['buttons3'], text="Initial")
-        self.info['camera'].pack(side=tk.LEFT, expand=tk.NO, fill=tk.NONE)
+        self.info['camera'] = tk.Label(self.frames['buttons3'], text="Initial", justify=tk.LEFT)
+        self.info['camera'].pack(side=tk.TOP, expand=tk.YES, fill=tk.X)
+        self.info['data'] = tk.Label(self.frames['buttons3'], text="Library offline.")
+        self.info['data'].pack(side=tk.TOP, expand=tk.YES, fill=tk.X)
 
-        #self.frames['screen'] = tk.Frame(self.frames['right'])
 
-        #self.frames['screen'] = Screen(tk.Tk())
-        #self.frames['screen'].pack(side=tk.TOP, expand = tk.YES, fill = tk.BOTH)
+        self.library = None
+        self.iterator = None
+        self.tempdata = None
+        self._update_library()
 
         self.connected = False
-        self.mode = 1
-        self.toggleMode()
+        self.mode = None
+        self.modeAdd()
 
 
-    def makeform(self, master, fields, defaults=None):
-        entries = {}
-        defaults = defaults or tuple(None for el in fields)
-        for field, default in zip(fields, defaults):
-            row = tk.Frame(master)
-            lab = tk.Label(row, width=22, text=field+": ", anchor='w')
-            ent = tk.Entry(row)
-            if default:
-                ent.insert(0, default)
-            row.pack(side = tk.TOP, fill = tk.X, padx = 10 , pady = 5)
-            lab.pack(side = tk.LEFT)
-            ent.pack(side = tk.RIGHT, expand = tk.YES, fill = tk.X)
-            entries[field] = ent
-        return entries
+    def _update_library(self):
+        if self.library is None:
+            self.library = Library()
+            self.info['data'].config(text='Library online.')
 
 
-    def addentry(self, master, field, width_label=12, width_entry=None, padx=10, pady=5, multiple=False):
+        self.iterator = iter(self.library)
+
+
+
+    def addentry(self, master, entries, field, width_label=12, width_entry=None, padx=10, pady=5, multiple=False):
 
         row = tk.Frame(master)
         lab = tk.Label(row, width=width_label, text=field+': ', anchor='w')
@@ -129,7 +133,7 @@ class App(tk.Frame):
         row.pack(side = tk.TOP if not multiple else tk.LEFT, fill = tk.X, padx = padx , pady = pady)
         lab.pack(side = tk.LEFT)
         ent.pack(side = tk.RIGHT, expand = tk.YES, fill = tk.X)
-        self.entries[field] = ent
+        entries[field] = ent
 
 
     def entrybutton(self, master, field_name, button_name, button_command, width_label=12, width_entry=None, width_button=None, padx=10, pady=5, default=None):
@@ -146,20 +150,86 @@ class App(tk.Frame):
         return (ent, but)
 
 
+    def _update_position(self):
+
+        entrywrite(self.buttons['idEnt'], self.iterator.index+1)
+        self.buttons['idLab'].config(text='/'+str(len(self.library)))
+
+
+    def _prepare_data(self):
+        self.tempdata = self.tempdata or {}
+
+        titsub = self.entries['Title'].get().split(SEPARATOR)
+        titsub = [el.strip() for el in titsub]
+        if len(titsub) == 1:
+            title = titsub[0]
+            sub = None
+        elif len(titsub) == 2:
+            title, sub = titsub
+        else:
+            raise RuntimeError
+
+        self.tempdata[FORM2JSON['Title'][0]] = title
+        if sub is not None:
+            self.tempdata[FORM2JSON['Title'][1]] = sub
+
+        isbn_type = len(self.entries['ISBN'].get())
+        if isbn_type == 10:
+            self.tempdata[FORM2JSON['ISBN'][0]]
+        elif isbn_type == 13:
+            self.tempdata[FORM2JSON['ISBN'][1]]
+        elif isbn_type == 0:
+            pass
+        else:
+            raise RuntimeError('ISBN')
+            
+
+        for key, val in self.entries.items():
+            if key in ['Title', 'ISBN']:
+                continue
+            self.tempdata[FORM2JSON.get(key, key)] = val.get()
+
+        for key, val in self.entries_loc.items():
+            self.tempdata[FORM2JSON.get(key, key)] = val.get()
+
+
     def save(self):
-        for key, entry in self.entries.items():
-            print('{}: {}'.format(key, entry.get()))
+
+        if self.mode == 0:
+            self._prepare_data()
+            self.library.data_add(self.tempdata)
+            self.modeAdd()
+
+        else:
+            self.tempdata = self.iterator.cur().data
+            self._prepare_data()
+            self.library.data_edit(self.iterator.index, self.tempdata)
+
+        self.tempdata = None
+        self._update_position()
+        self._update_library()
 
 
     def restore(self):
-        if self.mode == 0:
-            self.modeAdd()
-        else:
-            pass
+        self.dumpData(self.tempdata)
 
 
     def delete(self):
-        pass
+        
+        if self.mode == 0:
+            self.modeAdd()
+        else:
+            del_id = self.iterator.index + 1
+            if del_id == len(self.library):
+                new_id = del_id - 1
+            else:
+                new_id = del_id
+
+            self.library.delete(del_id - 1)
+            entrywrite(self.buttons['idEnt'], new_id)
+            self.navigate(5)
+            self.modeEdit()
+
 
 
     def toggleMode(self):
@@ -168,27 +238,57 @@ class App(tk.Frame):
         else:
             self.modeAdd()
 
+
     def modeAdd(self):
         self.mode = 0
-        self.info['camera'].config(text = 'Enter camera IP and click Go')
+        self.info['camera'].config(text = 'Enter camera IP and click Go.')
         self.buttons['ipEnt'].config(state ='normal')
         self.buttons['ipBut'].config(text = 'Go')
         self.buttons['ipBut'].config(state ='normal')
         self.buttons['mode'].config(text = 'ADD')
-        self.connected = False
+        self.navigate(4)
+        entrywrite(self.buttons['idEnt'], '- NEW -')
+        self.buttons['idEnt'].config(state='readonly')
+        self.buttons['idLab'].config(text='/'+str(len(self.library)))
+
+        for but in ['first', 'last', 'prev', 'next', 'idBut']:
+            self.buttons[but].config(state='disabled')
+
         for entry in self.entries.values():
             entry.delete(0, tk.END)
+        
+        if self.connected:
+            self.info['data'].config(text='Scanning barcode.')
+        else:
+            self.info['data'].config(text='Introduce IBAN and click Search.')
+
+        if len(self.library) == 0:
+            self.buttons['mode'].config(state='disabled')
+        else:
+            self.buttons['mode'].config(state='normal')
 
 
     def modeEdit(self):
+        if len(self.library) == 0:
+            self.modeAdd()
+            return
+
         self.mode = 1
-        self.info['camera'].config(text = 'Edit mode')
+        self.info['camera'].config(text = 'Edit mode. Camera disabled.')
         self.buttons['ipEnt'].config(state ='disabled')
         self.buttons['ipBut'].config(text = 'Go')
         self.buttons['ipBut'].config(state ='disabled')
         self.buttons['mode'].config(text = 'EDIT')
+        self.navigate(1)
+        self.buttons['idBut'].config(state='normal')
+        self.buttons['idEnt'].config(state='normal')
         self.screen = None
+
+        for but in ['first', 'last', 'prev', 'next', 'idBut']:
+            self.buttons[but].config(state='normal')
+
         self.connected = False
+        self._update_position()
 
     def toggleConnection(self):
         if self.connected:
@@ -201,16 +301,16 @@ class App(tk.Frame):
         self.info['camera'].config(text = 'Connecting...')
         self.ip = self.buttons['ipEnt'].get()
         if test_ip(self.ip):
-            self.info['camera'].config(text = 'Camera online')
+            self.info['camera'].config(text = 'Camera online.')
             self.buttons['ipBut'].config(text = 'ON')
             self.screen = tk.Toplevel()
             self.connected = True
         else:
-            self.info['camera'].config(text = 'Invalid IP. Please retry')
+            self.info['camera'].config(text = 'Invalid IP. Please retry.')
 
 
     def disconnect(self):
-        self.info['camera'].config(text = 'Camera offline')
+        self.info['camera'].config(text = 'Camera offline.')
         self.buttons['ipBut'].config(text = 'OFF')
         self.screen = None
         self.connected = False
@@ -226,34 +326,74 @@ class App(tk.Frame):
             image.place(x=0, y=0)
 
     def isbnGo(self):
-        isbn_in = self.entries['isbn'].get()
+        self.info['data'].config(text='Searching ISBN...')
+
+        isbn_in = self.entries['ISBN'].get()
         isbn = isbn_in.replace('-','').replace(' ','')
 
         if isbn != isbn_in:
-            self.entries['isbn'].delete(0, tk.END)
-            self.entries['isbn'].insert(0, isbn)
+            entrywrite(self.entries['ISBN'], isbn)
 
-        data = get_data(isbn)
-        print(data)
+        self.tempdata = get_data_gui(isbn)
+
+        if self.tempdata:
+            self.info['data'].config(text='Book found. Click Save to confirm.')
+            self.dumpData(self.tempdata)
+        else:
+            self.info['data'].config(text='Book not found. Enter details manually.')
 
 
     def dumpData(self, data):
-        pass
+        for key, val in data.items():
+            if key in JSON2FORM:
+                entry = JSON2FORM[key]
+                if entry in self.entries:
+                    entrywrite(self.entries[entry], val)
+                elif entry in self.entries_loc:
+                    entrywrite(self.entries_loc[entry], val)
 
-    def navFirst(self):
-        pass
+        if 'subtitle' in data:
+            titsub = data.get('title', '') + ' {} '.format(SEPARATOR) + data['subtitle']
+            entrywrite(self.entries['Title'], titsub)
 
-    def navPrev(self):
-        pass
+        if data.get('isbn_13'):
+            isbn = data.get('isbn_13')
+        elif data.get('isbn_10'):
+            isbn = data.get('isbn_10')
+        else:
+            isbn = ''
 
-    def navNext(self):
-        pass
+        entrywrite(self.entries['ISBN'], isbn)
 
-    def navLast(self):
-        pass
+    def navigate(self, where):
+        if self.mode == 0:
+            return
 
-    def navInut(self):
-        pass
+        if len(self.library) == 0:
+            return
+
+        try:
+            if where == 1:
+                self.tempdata = self.iterator.first().data
+            elif where == 2:
+                self.tempdata = self.iterator.prev().data
+            elif where == 3:
+                self.tempdata = self.iterator.next().data
+            elif where == 4:
+                self.tempdata = self.iterator.last().data
+            elif where == 5:
+                self.tempdata = self.iterator.goto(int(self.buttons['idEnt'].get())-1).data
+        except IndexError:
+            pass
+
+        self.dumpData(self.tempdata)
+
+        self._update_position()
+
+    def savequit(self):
+        self.library.save()
+        quit(self.master)
+
 
 
 class Screen(tk.Frame):

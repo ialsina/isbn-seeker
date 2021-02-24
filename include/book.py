@@ -11,15 +11,40 @@ class Library:
         return len(self.library)
 
     def __getitem__(self, item):
+        self._checkitem(item)
         return self.library[item]
+
+    def __setitem__(self, item, element):
+        self._checkitem(item)
+        self.library[item] = element
+
+
+    def __delitem__(self, item):
+        self._checkitem(item)
+        del self.library[item]
+
 
     def __iter__(self):
         return LibraryIterator(self)
+
+    def _checkitem(self, item):
+        assert isinstance(item, int)
+        assert 0 <= item < len(self.library)
+
+    def data_add(self, data):
+        self.add(Book(**data))
+
+    def data_edit(self, index, data):
+        self[index] = Book(**data)
 
     def add(self, book):
         assert isinstance(book, Book)
         self.count += 1
         self.library.append(book)
+
+
+    def delete(self, item):
+        del self[item]
 
 
     def search(self, query):
@@ -68,7 +93,7 @@ class Library:
 
 class LibraryIterator:
     def __init__(self, library):
-        self._index = 0
+        self.index = 0
         self._library = library
     
     def __iter__(self):
@@ -82,30 +107,40 @@ class LibraryIterator:
         else:
             raise StopIteration
 
+    def ret(self):
+        return self._library[self.index]
+
     def first(self):
-        self._index = 0
-        self.ret()
+        self.index = 0
+        return self.ret()
 
     def last(self):
-        self._index = len(self._library) - 1
-        self.ret()
+        self.index = len(self._library) - 1
+        return self.ret()
 
     def prev(self):
-        if self._index > 0:
-            self._index -= 1
-            self.ret()
+        if self.index > 0:
+            self.index -= 1
+            return self.ret()
         else:
-            raise StopIteration
+            raise IndexError
 
     def next(self):
-        if self._index < len(self._library) - 1:
-            self._index += 1
-            self.ret()
+        if self.index < len(self._library) - 1:
+            self.index += 1
+            return self.ret()
         else:
-            raise StopIteration
+            raise IndexError
 
-    def ret(self):
-        return self._library[self._index]
+    cur = ret
+
+    def goto(self, ind):
+        ind = int(ind)
+        if ind >= 0 and ind <= len(self._library) - 1:
+            self.index = ind
+            return self.ret()
+        else:
+            raise IndexError
 
 
 

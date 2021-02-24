@@ -166,6 +166,19 @@ def get_data(isbn):
         return data
 
 
+def get_data_gui(isbn):
+    try:
+        data = fetch(isbn)
+    except JsonError as e:
+        return {}
+    except RequestError as e:
+        return {}
+    except NotFoundError:
+        return {}
+    else:
+        return data
+
+
 def ask_isbn():
     inp = input('Input ISBN: >')
 

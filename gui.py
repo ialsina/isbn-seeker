@@ -10,10 +10,4 @@ if __name__ == '__main__':
     root = tk.Tk()
     myapp = App(root)
 
-    while True:
-
-        try:
-            myapp.update()
-        except (KeyboardInterrupt, tk.TclError):
-            break
-        time.sleep(.02)
+    myapp.mainloop()
