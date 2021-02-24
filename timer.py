@@ -1,4 +1,7 @@
-from datetime import datetime
+try:
+    from .datetime import datetime
+except ImportError:
+    from datetime import datetime
 
 class Timer:
     def __init__(self, active=True):

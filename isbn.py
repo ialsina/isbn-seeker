@@ -1,9 +1,15 @@
 import requests
 import json
 
-from book import Book, Library
-from fields import fields
-from timer import Timer
+try:
+    from .book import Book, Library
+    from .fields import fields
+    from .timer import Timer
+except ImportError:
+    from book import Book, Library
+    from fields import fields
+    from timer import Timer
+
 
 class JsonError(Exception):
     pass
