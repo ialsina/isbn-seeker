@@ -73,6 +73,8 @@ class App(tk.Frame):
         self.frames['right'] = tk.Frame(self.master)
         self.frames['right'].pack(side = tk.RIGHT, expand = tk.YES, fill = tk.BOTH)
 
+        self.frames['buttons13'] = tk.Frame(self.frames['right'])
+        self.frames['buttons13'].pack(side = tk.BOTTOM, expand = tk.YES, fill = tk.X)
         self.frames['buttons12'] = tk.Frame(self.frames['right'])
         self.frames['buttons12'].pack(side = tk.BOTTOM, expand = tk.YES, fill = tk.X)
         self.frames['buttons11'] = tk.Frame(self.frames['right'])
@@ -91,12 +93,16 @@ class App(tk.Frame):
         self.labels['form'] = tk.Label(self.frames['buttons12'], text="Form: ")
         self.buttons['idEnt'] = tk.Entry(self.frames['buttons12'])
         self.buttons['idLab'] = tk.Label(self.frames['buttons12'], text="/Size")
+        self.buttons['move'] = tk.Button(self.frames['buttons12'], text='Move', command=self.move)
         self.labels['form'].pack(side=tk.LEFT)
         self.buttons['idEnt'].pack(side=tk.LEFT)
         self.buttons['idLab'].pack(side=tk.LEFT)
         self.buttons['idBut'].pack(side=tk.LEFT)
-        self.buttons['exit'] = tk.Button(self.frames['buttons12'], text="EXIT", command=self.savequit)
-        self.buttons['exit'].pack(side=tk.LEFT)
+        self.buttons['move'].pack(side=tk.LEFT)
+        self.buttons['exit'] = tk.Button(self.frames['buttons13'], text="SAVE", command=self.save)
+        self.buttons['exit'].pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
+        self.buttons['exit'] = tk.Button(self.frames['buttons13'], text="EXIT", command=self.savequit)
+        self.buttons['exit'].pack(side=tk.RIGHT, fill=tk.X, expand=tk.YES)
 
         self.frames['fields'] = tk.Frame(self.frames['left'])
         self.frames['fields'].pack(side = tk.TOP, expand = tk.YES, fill = tk.BOTH)
@@ -113,8 +119,8 @@ class App(tk.Frame):
         self.frames['buttons2'] = tk.Frame(self.frames['left'])
         self.frames['buttons2'].pack(side=tk.BOTTOM, expand = tk.YES, fill =tk.X)
 
-        self.buttons['save'] = tk.Button(self.frames['buttons2'], text="Save", command=self.save)
-        self.buttons['save'].pack(side=tk.LEFT, fill=tk.X, padx=5, expand=tk.YES)
+        self.buttons['store'] = tk.Button(self.frames['buttons2'], text="Add", command=self.store)
+        self.buttons['store'].pack(side=tk.LEFT, fill=tk.X, padx=5, expand=tk.YES)
         self.buttons['restore'] = tk.Button(self.frames['buttons2'], text="Restore", command=self.restore)
         self.buttons['restore'].pack(side=tk.LEFT, fill=tk.X, padx=5, expand=tk.YES)
         self.buttons['delete'] = tk.Button(self.frames['buttons2'], text="Delete", command=self.delete)
@@ -137,7 +143,9 @@ class App(tk.Frame):
 
         self.iterator = None
         self.tempdata = None
+        self.tempval = None
         self.ip = None
+        self.moving = False
         self.library = load()
         self._update_library()
 
@@ -149,8 +157,11 @@ class App(tk.Frame):
             self.modeEdit()
 
 
-    def _update_library(self):
+    def _update_library(self, cur=None):
         self.iterator = iter(self.library)
+        if cur is not None:
+            assert 1 < cur <= len(self.library)
+            self.iterator.set(cur-1)
 
 
     def addentry(self, master, entries, field, width_label=12, width_entry=None, padx=10, pady=5, multiple=False):
@@ -180,7 +191,7 @@ class App(tk.Frame):
 
     def _update_position(self):
 
-        entrywrite(self.buttons['idEnt'], self.iterator.index+1)
+        entrywrite(self.buttons['idEnt'], self.iterator.get()+1)
         self.buttons['idLab'].config(text='/'+str(len(self.library)))
 
 
@@ -201,11 +212,12 @@ class App(tk.Frame):
         if sub is not None:
             self.tempdata[FORM2JSON['Title'][1]] = sub
 
-        isbn_type = len(self.entries['ISBN'].get())
+        isbn = self.entries['ISBN'].get()
+        isbn_type = len(isbn)
         if isbn_type == 10:
-            self.tempdata[FORM2JSON['ISBN'][0]]
+            self.tempdata[FORM2JSON['ISBN'][0]] = isbn
         elif isbn_type == 13:
-            self.tempdata[FORM2JSON['ISBN'][1]]
+            self.tempdata[FORM2JSON['ISBN'][1]] = isbn_type
         elif isbn_type == 0:
             pass
         else:
@@ -224,7 +236,7 @@ class App(tk.Frame):
             self.tempdata[FORM2JSON.get(key, key)] = val.get()
 
 
-    def save(self):
+    def store(self):
 
         if self.connected == 2:
             self.connected = 1
@@ -237,7 +249,7 @@ class App(tk.Frame):
         else:
             self.tempdata = self.iterator.cur().data
             self._prepare_data()
-            self.library.data_edit(self.iterator.index, self.tempdata)
+            self.library.data_edit(self.iterator.get(), self.tempdata)
 
         self.tempdata = None
         self._update_position()
@@ -256,7 +268,7 @@ class App(tk.Frame):
         if self.mode == 0:
             self.modeAdd()
         else:
-            del_id = self.iterator.index + 1
+            del_id = self.iterator.get() + 1
             if del_id == len(self.library):
                 new_id = del_id - 1
             else:
@@ -266,6 +278,29 @@ class App(tk.Frame):
             entrywrite(self.buttons['idEnt'], new_id)
             self.navigate(5)
             self.modeEdit()
+
+
+    def move(self):
+        import time
+        if self.mode != 1:
+            return
+
+        if not self.moving:
+            self.moving = True
+            self.buttons['mode'].config(state = 'disabled')
+            self.buttons['move'].config(text = 'Drop')
+            self.info['data'].config(text='Navigate to desired position and press Drop')
+            self.tempval = self.iterator.get() + 1
+
+        elif self.moving:
+            self.moving = False
+            self.buttons['mode'].config(state = 'normal')
+            self.buttons['move'].config(text = 'Move')
+            self.library.move(self.tempval-1, self.iterator.get())
+            self._update_library()
+            self.navigate(5)
+            self.tempval = None
+            self.modeEdit(False)
 
 
 
@@ -281,12 +316,13 @@ class App(tk.Frame):
         self.buttons['ipEnt'].config(state ='normal')
         self.buttons['ipBut'].config(state ='normal')
         self.buttons['mode'].config(text = 'ADD')
+        self.buttons['store'].config(text = 'Add')
         self.navigate(4)
         entrywrite(self.buttons['idEnt'], '- NEW -')
         self.buttons['idEnt'].config(state='readonly')
         self.buttons['idLab'].config(text='/'+str(len(self.library)))
 
-        for but in ['first', 'last', 'prev', 'next', 'idBut']:
+        for but in ['first', 'last', 'prev', 'next', 'idBut', 'move']:
             self.buttons[but].config(state='disabled')
 
         for entry in self.entries.values():
@@ -308,22 +344,24 @@ class App(tk.Frame):
             self.buttons['mode'].config(state='normal')
 
 
-    def modeEdit(self):
+    def modeEdit(self, to_first=True):
         if len(self.library) == 0:
             self.modeAdd()
             return
 
         self.mode = 1
         self.info['camera'].config(text = 'Edit mode. Camera disabled.')
+        self.info['data'].config(text = 'Navigate library, edit fields and press Store.')
         self.buttons['ipEnt'].config(state ='disabled')
         self.buttons['ipBut'].config(text = 'Go')
         self.buttons['ipBut'].config(state ='disabled')
         self.buttons['mode'].config(text = 'EDIT')
-        self.navigate(1)
-        self.buttons['idBut'].config(state='normal')
+        self.buttons['store'].config(text = 'Store')
+        if to_first:
+            self.navigate(1)
         self.buttons['idEnt'].config(state='normal')
 
-        for but in ['first', 'last', 'prev', 'next', 'idBut']:
+        for but in ['first', 'last', 'prev', 'next', 'idBut', 'move']:
             self.buttons[but].config(state='normal')
 
         self.connected = 0
@@ -424,6 +462,9 @@ class App(tk.Frame):
         self.dumpData(self.tempdata)
 
         self._update_position()
+
+    def save(self):
+        self.library.save()
 
     def savequit(self):
         if save():

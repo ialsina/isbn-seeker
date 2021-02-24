@@ -45,6 +45,13 @@ class Library:
         self.library.append(book)
 
 
+    def move(self, origin, destination):
+        self._checkitem(origin)
+        self._checkitem(destination)
+
+        element = self.library.pop(origin)
+        self.library = self.library[:destination] + [element] + self.library[destination:]
+
     def delete(self, item):
         del self[item]
 
@@ -97,7 +104,7 @@ class Library:
 
 class LibraryIterator:
     def __init__(self, library):
-        self.index = 0
+        self._index = 0
         self._library = library
     
     def __iter__(self):
@@ -111,27 +118,34 @@ class LibraryIterator:
         else:
             raise StopIteration
 
+    def get(self):
+        return self._index
+
+    def set(self, ind):
+        self._library._checkitem(ind)
+        self._index = ind
+
     def ret(self):
-        return self._library[self.index]
+        return self._library[self._index]
 
     def first(self):
-        self.index = 0
+        self._index = 0
         return self.ret()
 
     def last(self):
-        self.index = len(self._library) - 1
+        self._index = len(self._library) - 1
         return self.ret()
 
     def prev(self):
-        if self.index > 0:
-            self.index -= 1
+        if self._index > 0:
+            self._index -= 1
             return self.ret()
         else:
             raise IndexError
 
     def next(self):
-        if self.index < len(self._library) - 1:
-            self.index += 1
+        if self._index < len(self._library) - 1:
+            self._index += 1
             return self.ret()
         else:
             raise IndexError
@@ -141,7 +155,7 @@ class LibraryIterator:
     def goto(self, ind):
         ind = int(ind)
         if ind >= 0 and ind <= len(self._library) - 1:
-            self.index = ind
+            self._index = ind
             return self.ret()
         else:
             raise IndexError
