@@ -8,7 +8,7 @@ from gui import App
 if __name__ == '__main__':
 
     root = tk.Tk()
-    myapp = App(root)
+    myapp = App(root, geometry='1000x300')
 
     while True:
         try:

@@ -64,11 +64,14 @@ def entrywrite(entry, text):
 
 
 class App(tk.Frame):
-    def __init__(self, master):
+    def __init__(self, master, geometry=None):
         super().__init__(master)
 
         self.master = master
-        self.pack()
+        self.pack(fill = tk.BOTH, expand = tk.YES)
+
+        if geometry is not None:
+            self.master.geometry(geometry)
 
         self.master.bind('<KeyPress-Home>', self.navFirst)
         self.master.bind('<KeyPress-Prior>', self.navPrev)
@@ -87,10 +90,10 @@ class App(tk.Frame):
         self.fields_data = DATA_FIELDS
         self.fields_location = LOC_FIELDS
 
-        self.frames['left'] = tk.Frame(self.master)
+        self.frames['left'] = tk.Frame(self)
         self.frames['left'].pack(side = tk.LEFT, expand = tk.YES, fill = tk.BOTH)
-        self.frames['right'] = tk.Frame(self.master)
-        self.frames['right'].pack(side = tk.RIGHT, expand = tk.YES, fill = tk.BOTH)
+        self.frames['right'] = tk.Frame(self)
+        self.frames['right'].pack(side = tk.RIGHT, expand = tk.NO, fill = tk.BOTH)
 
         self.frames['buttons13'] = tk.Frame(self.frames['right'])
         self.frames['buttons13'].pack(side = tk.BOTTOM, expand = tk.YES, fill = tk.X)
@@ -105,10 +108,10 @@ class App(tk.Frame):
         self.buttons['last'] = tk.Button(self.frames['buttons11'], text="▶▶", command=self.navLast)
         self.buttons['idBut'] = tk.Button(self.frames['buttons12'], text='Navigate', command=self.navGoto)
 
-        self.buttons['first'].pack(side=tk.LEFT, expand=tk.YES, fill=tk.X)
-        self.buttons['prev'].pack(side=tk.LEFT, expand=tk.YES, fill=tk.X)
-        self.buttons['next'].pack(side=tk.LEFT, expand=tk.YES, fill=tk.X)
-        self.buttons['last'].pack(side=tk.LEFT, expand=tk.YES, fill=tk.X)
+        self.buttons['first'].pack(side=tk.LEFT, expand = tk.YES, fill = tk.X)
+        self.buttons['prev'].pack(side=tk.LEFT, expand = tk.YES, fill = tk.X)
+        self.buttons['next'].pack(side=tk.LEFT, expand = tk.YES, fill = tk.X)
+        self.buttons['last'].pack(side=tk.LEFT, expand = tk.YES, fill = tk.X)
         self.labels['form'] = tk.Label(self.frames['buttons12'], text="Form: ")
         self.buttons['idEnt'] = tk.Entry(self.frames['buttons12'])
         self.buttons['idLab'] = tk.Label(self.frames['buttons12'], text="/Size")
@@ -119,15 +122,15 @@ class App(tk.Frame):
         self.buttons['idBut'].pack(side=tk.LEFT)
         self.buttons['move'].pack(side=tk.LEFT)
         self.buttons['exit'] = tk.Button(self.frames['buttons13'], text="SAVE", command=self.save)
-        self.buttons['exit'].pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
+        self.buttons['exit'].pack(side=tk.LEFT, fill = tk.X, expand = tk.YES)
         self.buttons['exit'] = tk.Button(self.frames['buttons13'], text="EXIT", command=self.savequit)
-        self.buttons['exit'].pack(side=tk.RIGHT, fill=tk.X, expand=tk.YES)
+        self.buttons['exit'].pack(side=tk.RIGHT, fill = tk.X, expand = tk.YES)
 
         self.frames['fields'] = tk.Frame(self.frames['left'])
         self.frames['fields'].pack(side = tk.TOP, expand = tk.YES, fill = tk.BOTH)
 
         loc_row = tk.Frame(self.frames['fields'])
-        loc_row.pack(side=tk.TOP, expand=tk.YES, fill =tk.X)
+        loc_row.pack(side=tk.TOP, expand = tk.YES, fill =tk.X)
         for field in self.fields_location:
             self.addentry(loc_row, self.entries_loc, field, width_label=8, width_entry=5, multiple=True)
 
@@ -139,11 +142,11 @@ class App(tk.Frame):
         self.frames['buttons2'].pack(side=tk.BOTTOM, expand = tk.YES, fill =tk.X)
 
         self.buttons['store'] = tk.Button(self.frames['buttons2'], text="Add", command=self.store)
-        self.buttons['store'].pack(side=tk.LEFT, fill=tk.X, padx=5, expand=tk.YES)
+        self.buttons['store'].pack(side=tk.LEFT, fill = tk.X, padx=5, expand = tk.YES)
         self.buttons['restore'] = tk.Button(self.frames['buttons2'], text="Restore", command=self.restore)
-        self.buttons['restore'].pack(side=tk.LEFT, fill=tk.X, padx=5, expand=tk.YES)
+        self.buttons['restore'].pack(side=tk.LEFT, fill = tk.X, padx=5, expand = tk.YES)
         self.buttons['delete'] = tk.Button(self.frames['buttons2'], text="Delete", command=self.delete)
-        self.buttons['delete'].pack(side=tk.LEFT, fill=tk.X, padx=5, expand=tk.YES)
+        self.buttons['delete'].pack(side=tk.LEFT, fill = tk.X, padx=5, expand = tk.YES)
 
 
         self.frames['buttons3'] = tk.Frame(self.frames['right'])
@@ -151,13 +154,13 @@ class App(tk.Frame):
 
 
         self.buttons['mode'] = tk.Button(self.frames['buttons3'], text="Initial", command=self.toggleMode)
-        self.buttons['mode'].pack(side=tk.TOP, fill=tk.X)
+        self.buttons['mode'].pack(side=tk.TOP, fill = tk.X)
 
         self.buttons['ipEnt'], self.buttons['ipBut'] = self.entrybutton(self.frames['buttons3'], 'Camera IP', 'Go', self.toggleConnection)
         self.info['camera'] = tk.Label(self.frames['buttons3'], text="Initial", justify=tk.LEFT)
-        self.info['camera'].pack(side=tk.TOP, expand=tk.YES, fill=tk.X)
+        self.info['camera'].pack(side=tk.TOP, expand = tk.YES, fill = tk.X)
         self.info['data'] = tk.Label(self.frames['buttons3'], text="Library offline.")
-        self.info['data'].pack(side=tk.TOP, expand=tk.YES, fill=tk.X)
+        self.info['data'].pack(side=tk.TOP, expand = tk.YES, fill = tk.X)
 
 
         self.iterator = None
@@ -190,9 +193,9 @@ class App(tk.Frame):
         row = tk.Frame(master)
         lab = tk.Label(row, width=width_label, text=field+': ', anchor='w')
         ent = tk.Entry(row, width=width_entry)
-        row.pack(side = tk.TOP if not multiple else tk.LEFT, fill = tk.X, padx = padx , pady = pady)
+        row.pack(side = tk.TOP if not multiple else tk.LEFT, expand = tk.YES, fill = tk.BOTH, padx = padx , pady = pady)
         lab.pack(side = tk.LEFT)
-        ent.pack(side = tk.RIGHT, expand = tk.YES, fill = tk.X)
+        ent.pack(side = tk.RIGHT, expand = tk.YES, fill = tk.BOTH)
         entries[field] = ent
 
 
@@ -203,9 +206,9 @@ class App(tk.Frame):
         if default:
             ent.insert(0, default)
         but = tk.Button(row, text=button_name, width=width_button, command=button_command)
-        row.pack(side = tk.TOP, fill = tk.X, padx = padx, pady = pady)
+        row.pack(side = tk.TOP, expand = tk.YES, fill = tk.BOTH, padx = padx, pady = pady)
         lab.pack(side = tk.LEFT)
-        ent.pack(side = tk.LEFT, expand=tk.YES, fill = tk.X)
+        ent.pack(side = tk.LEFT, expand = tk.YES, fill = tk.BOTH)
         but.pack(side = tk.RIGHT)
         return (ent, but)
 
