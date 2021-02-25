@@ -22,13 +22,12 @@ def load():
     from os import pardir
     from os.path import abspath, join, dirname, isfile
     import pickle
-    import tkinter.messagebox as mb
 
 
     path = abspath(join(dirname(__file__), pardir, 'data', 'library.pickle'))
 
     if isfile(path):
-        loading = mb.askyesno(title='Load', message='Load library from file?')
+        loading = msgbox('yesno', 'Load library from file?', 'Load')
         if loading:
             with open(path, 'rb') as f:
                 library = pickle.load(f)
@@ -41,9 +40,22 @@ def load():
     return library
 
 
-def save():
+def msgbox(mode, message, title=None):
     import tkinter.messagebox as mb
-    return mb.askyesno(title='Save', message='Save library to file?')
+    if mode not in ['yesno', 'info', 'warn', 'err']:
+        raise NotImplementedError
+
+    kwargs = dict(title=title, message=message)
+    if mode == 'yesno':
+        return mb.askyesno(**kwargs)
+    elif mode == 'info':
+        mb.showinfo(**kwargs)
+    elif mode == 'warn':
+        mb.showwarning(**kwargs)
+    elif mode == 'err':
+        mb.showerror(**kwargs)
+    return
+
 
 
 def entrywrite(entry, text):
@@ -57,6 +69,13 @@ class App(tk.Frame):
 
         self.master = master
         self.pack()
+
+        self.master.bind('<KeyPress-Home>', self.navFirst)
+        self.master.bind('<KeyPress-Prior>', self.navPrev)
+        self.master.bind('<KeyPress-Next>', self.navNext)
+        self.master.bind('<KeyPress-End>', self.navLast)
+        self.master.bind('<Control-KeyPress-Return>', self.store)
+        self.master.bind('<Control-KeyPress-Delete>', self.delete)
 
         self.frames = {}
         self.buttons = {}
@@ -80,11 +99,11 @@ class App(tk.Frame):
         self.frames['buttons11'] = tk.Frame(self.frames['right'])
         self.frames['buttons11'].pack(side = tk.BOTTOM, expand = tk.YES, fill = tk.X)
 
-        self.buttons['prev'] = tk.Button(self.frames['buttons11'], text="◀", command=lambda: self.navigate(2))
-        self.buttons['next'] = tk.Button(self.frames['buttons11'], text="▶", command=lambda: self.navigate(3))
-        self.buttons['first'] = tk.Button(self.frames['buttons11'], text="◀◀", command=lambda: self.navigate(1))
-        self.buttons['last'] = tk.Button(self.frames['buttons11'], text="▶▶", command=lambda: self.navigate(4))
-        self.buttons['idBut'] = tk.Button(self.frames['buttons12'], text='Navigate', command=lambda: self.navigate(5))
+        self.buttons['prev'] = tk.Button(self.frames['buttons11'], text="◀", command=self.navPrev)
+        self.buttons['next'] = tk.Button(self.frames['buttons11'], text="▶", command=self.navNext)
+        self.buttons['first'] = tk.Button(self.frames['buttons11'], text="◀◀", command=self.navFirst)
+        self.buttons['last'] = tk.Button(self.frames['buttons11'], text="▶▶", command=self.navLast)
+        self.buttons['idBut'] = tk.Button(self.frames['buttons12'], text='Navigate', command=self.navGoto)
 
         self.buttons['first'].pack(side=tk.LEFT, expand=tk.YES, fill=tk.X)
         self.buttons['prev'].pack(side=tk.LEFT, expand=tk.YES, fill=tk.X)
@@ -147,6 +166,7 @@ class App(tk.Frame):
         self.ip = None
         self.moving = False
         self.unchanged = True
+
         self.library = load()
         self._update_library()
 
@@ -207,7 +227,7 @@ class App(tk.Frame):
         elif len(titsub) == 2:
             title, sub = titsub
         else:
-            raise RuntimeError
+            msgbox('err', 'Separator "{}" can be used only once in the field "Title"'.format(SEPARATOR))
 
         self.tempdata[FORM2JSON['Title'][0]] = title
         if sub is not None:
@@ -223,6 +243,7 @@ class App(tk.Frame):
             self.tempdata[FORM2JSON['ISBN'][0]] = ''
             self.tempdata[FORM2JSON['ISBN'][1]] = ''
         else:
+            msgbox('err', 'ISBN must contain 10 or 13 digits', 'ISBN')
             raise RuntimeError('ISBN')
             
 
@@ -238,7 +259,7 @@ class App(tk.Frame):
             self.tempdata[FORM2JSON.get(key, key)] = val.get()
 
 
-    def store(self):
+    def store(self, event=None):
 
         self.unchanged = False
         self.tempdata = None
@@ -265,7 +286,7 @@ class App(tk.Frame):
         self.dumpData(self.tempdata)
 
 
-    def delete(self):
+    def delete(self, event=None):
 
         if self.connected == 2:
             self.connected = 1
@@ -327,11 +348,16 @@ class App(tk.Frame):
         self.buttons['idEnt'].config(state='readonly')
         self.buttons['idLab'].config(text='/'+str(len(self.library)))
 
-        for but in ['first', 'last', 'prev', 'next', 'idBut', 'move']:
+        for but in ['first', 'prev', 'next', 'idBut', 'move']:
             self.buttons[but].config(state='disabled')
 
         for entry in self.entries.values():
             entry.delete(0, tk.END)
+
+        if len(self.library) > 0:
+            lastdata = self.iterator.last().data
+            for key, entry in self.entries_loc.items():
+                entrywrite(entry, lastdata.get(FORM2JSON[key], ''))
         
         if self.connected == 1:
             self.info['data'].config(text='Scanning barcode.')
@@ -366,7 +392,7 @@ class App(tk.Frame):
             self.navigate(1)
         self.buttons['idEnt'].config(state='normal')
 
-        for but in ['first', 'last', 'prev', 'next', 'idBut', 'move']:
+        for but in ['first', 'prev', 'next', 'idBut', 'move']:
             self.buttons[but].config(state='normal')
 
         self.connected = 0
@@ -402,10 +428,16 @@ class App(tk.Frame):
 
 
     def isbnGo(self):
+
         self.info['data'].config(text='Searching book data...')
 
         isbn_in = self.entries['ISBN'].get()
         isbn = isbn_in.replace('-','').replace(' ','')
+
+        if len(isbn) not in [10, 13]:
+            msgbox('err', 'ISBN must contain 10 or 13 digits', 'ISBN')
+            self.info['data'].config(text='Invalid ISBN. Please retry.')
+            raise RuntimeError('ISBN')
 
         if isbn != isbn_in:
             entrywrite(self.entries['ISBN'], isbn)
@@ -445,6 +477,9 @@ class App(tk.Frame):
         else:
             isbn = ''
 
+        if isinstance(isbn, list):
+            isbn = isbn[0]
+
         entrywrite(self.entries['ISBN'], isbn)
 
     def navigate(self, where):
@@ -468,9 +503,38 @@ class App(tk.Frame):
         except IndexError:
             pass
 
-        self.dumpData(self.tempdata)
+        if self.tempdata is not None:
+            self.dumpData(self.tempdata)
 
         self._update_position()
+
+    def navGoto(self):
+        self.navigate(5)
+
+    def navFirst(self, event=None):
+        if self.mode == 1:
+            self.navigate(1)
+
+    def navPrev(self, event=None):
+        if self.mode == 1:
+            self.navigate(2)
+
+    def navNext(self, event=None):
+        if self.mode == 1:
+            self.navigate(3)
+
+    def navLast(self, event=None):
+        if self.mode == 1:
+            self.navigate(4)
+        if self.mode == 0 and event is None:
+            self.copylast()
+
+    def copylast(self):
+        if self.mode == 1:
+            return
+
+        else:
+            self.dumpData(self.iterator.last().data)
 
     def save(self):
         self.library.save()
@@ -478,7 +542,7 @@ class App(tk.Frame):
 
     def savequit(self):
         if not self.unchanged:
-            if save():
+            if msgbox('yesno', 'Save library to file?', 'yesno'):
                 self.library.save()
         quit(self.master)
 
@@ -508,6 +572,3 @@ if __name__ == '__main__':
         except (KeyboardInterrupt, tk.TclError):
             break
         time.sleep(.02)
-
-
-        
