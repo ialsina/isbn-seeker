@@ -72,7 +72,7 @@ class Library:
         else:
             return found
 
-    def export_csv(self):
+    def export_csv(self, path=None):
         from ordered_set import OrderedSet
 
         fields = OrderedSet(['room', 'module', 'shelf', 'title', 'authors', 'publishers',
@@ -82,7 +82,7 @@ class Library:
             for field in book.data.keys():
                 fields.add(field)
 
-        path = abspath(join(dirname(__file__), pardir, 'data', 'library.csv'))
+        path = path or abspath(join(dirname(__file__), pardir, 'data', 'library.csv'))
         with open(path, 'w') as f:
             writer = csv.writer(f, delimiter=';', quotechar='"')
             writer.writerow(['#'] + list(fields))
@@ -92,8 +92,8 @@ class Library:
 
 
 
-    def export_obj(self):
-        path = abspath(join(dirname(__file__), pardir, 'data', 'library.pickle'))
+    def export_obj(self, path=None):
+        path = path or abspath(join(dirname(__file__), pardir, 'data', 'library.pickle'))
         with open(path, 'wb') as f:
             pickle.dump(self, f)
 

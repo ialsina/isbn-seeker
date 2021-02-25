@@ -57,6 +57,17 @@ def msgbox(mode, message, title=None):
     return
 
 
+def filebrowse():
+    from tkinter import filedialog
+    path = filedialog.asksaveasfilename(initialdir = "~",
+        title = "Select a File",
+        filetypes = (("Comma separated value","*.csv"),
+                     ("Pickle binary file", "*.pickle"),
+                     ("all files","*")))
+      
+    return path
+
+
 
 def entrywrite(entry, text):
     entry.delete(0, tk.END)
@@ -121,8 +132,10 @@ class App(tk.Frame):
         self.buttons['idLab'].pack(side=tk.LEFT)
         self.buttons['idBut'].pack(side=tk.LEFT)
         self.buttons['move'].pack(side=tk.LEFT)
-        self.buttons['exit'] = tk.Button(self.frames['buttons13'], text="SAVE", command=self.save)
-        self.buttons['exit'].pack(side=tk.LEFT, fill = tk.X, expand = tk.YES)
+        self.buttons['export'] = tk.Button(self.frames['buttons13'], text="EXPORT", command=self.export)
+        self.buttons['export'].pack(side=tk.TOP, fill = tk.X, expand = tk.YES)
+        self.buttons['save'] = tk.Button(self.frames['buttons13'], text="SAVE", command=self.save)
+        self.buttons['save'].pack(side=tk.LEFT, fill = tk.X, expand = tk.YES)
         self.buttons['exit'] = tk.Button(self.frames['buttons13'], text="EXIT", command=self.savequit)
         self.buttons['exit'].pack(side=tk.RIGHT, fill = tk.X, expand = tk.YES)
 
@@ -451,7 +464,7 @@ class App(tk.Frame):
             print("Unexpeced error")
 
         if self.tempdata:
-            self.info['data'].config(text='Book found. Click Save to confirm.')
+            self.info['data'].config(text='Book found. Click Add to confirm.')
             self.dumpData(self.tempdata)
         else:
             self.info['data'].config(text='Book not found. Enter details manually.')
@@ -539,6 +552,16 @@ class App(tk.Frame):
         else:
             self.tempdata = self.iterator.last().data
             self.dumpData(self.tempdata)
+
+    def export(self):
+        path = filebrowse()
+        extension = path.split('.')[-1]
+        if extension == 'csv':
+            self.library.export_csv(path = path)
+        elif extension == 'pickle':
+            self.library.export_obj(path = path)
+        else:
+            msgbox('err', 'Export supports extensions: .csv, .pickle', 'Export')
 
     def save(self):
         self.library.save()
