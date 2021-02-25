@@ -534,7 +534,8 @@ class App(tk.Frame):
             return
 
         else:
-            self.dumpData(self.iterator.last().data)
+            self.tempdata = self.iterator.last().data
+            self.dumpData(self.tempdata)
 
     def save(self):
         self.library.save()
