@@ -468,6 +468,8 @@ class App(tk.Frame):
             self.dumpData(self.tempdata)
         else:
             self.info['data'].config(text='Book not found. Enter details manually.')
+            if self.connected == 2:
+                self.connected = 1
             print(exit)
 
 
@@ -555,7 +557,10 @@ class App(tk.Frame):
 
     def export(self):
         path = filebrowse()
-        extension = path.split('.')[-1]
+        try:
+            extension = path.split('.')[-1]
+        except AttributeError:
+            return
         if extension == 'csv':
             self.library.export_csv(path = path)
         elif extension == 'pickle':
@@ -582,9 +587,9 @@ class App(tk.Frame):
                 print('\a', end='\r')
                 entrywrite(self.entries['ISBN'], barcode)
                 self.info['data'].config(text='ISBN found. Searching book data...')
+                self.connected = 2
                 self.update()
                 self.isbnGo()
-                self.connected = 2
 
 
 if __name__ == '__main__':

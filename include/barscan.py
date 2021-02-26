@@ -36,11 +36,14 @@ def get_pic(url=None, ip=None):
 
     url = url or get_url(ip)
 
-    imgResp = urllib.request.urlopen(url)
-    imgNp = np.asarray(bytearray(imgResp.read()), dtype=np.uint8)
-    img = cv2.imdecode(imgNp,-1)
+    try:
+        imgResp = urllib.request.urlopen(url)
+        imgNp = np.asarray(bytearray(imgResp.read()), dtype=np.uint8)
+        img = cv2.imdecode(imgNp,-1)
+        return img
 
-    return img
+    except Exception as e:
+        raise e
 
 
 def test_url(url):
