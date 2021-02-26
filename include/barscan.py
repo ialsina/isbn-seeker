@@ -90,7 +90,10 @@ def get_barcode(img):
 
 
 def ip2barcode(ip):
-    return get_barcode(get_pic(ip=ip))
+    try:
+        return get_barcode(get_pic(ip=ip))
+    except:
+        return None
 
 
 if __name__ == '__main__':

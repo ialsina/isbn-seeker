@@ -583,6 +583,11 @@ class App(tk.Frame):
         if self.connected == 1:
             barcode = ip2barcode(self.ip)
 
+            if barcode is None:
+                self.info['camera'].configure(text='Camera stream stopped')
+                self.disconnect()
+                return
+
             if len(barcode) == 1:
                 print('\a', end='\r')
                 entrywrite(self.entries['ISBN'], barcode)
