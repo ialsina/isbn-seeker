@@ -191,7 +191,7 @@ class App(tk.Frame):
         if len(self.library) == 0:
             self.modeAdd()
         else:
-            self.modeEdit()
+            self.modeEdit(4)
 
 
     def _update_library(self, cur=None):
@@ -319,7 +319,7 @@ class App(tk.Frame):
             self.library.delete(del_id - 1)
             entrywrite(self.buttons['idEnt'], new_id)
             self.navigate(5)
-            self.modeEdit(to_first = False)
+            self.modeEdit(0)
 
 
     def move(self):
@@ -342,13 +342,13 @@ class App(tk.Frame):
             self._update_library()
             self.navigate(5)
             self.tempval = None
-            self.modeEdit(False)
+            self.modeEdit(0)
 
 
 
     def toggleMode(self):
         if self.mode == 0:
-            self.modeEdit()
+            self.modeEdit(4)
         else:
             self.modeAdd()
 
@@ -391,7 +391,7 @@ class App(tk.Frame):
             self.buttons['mode'].config(state='normal')
 
 
-    def modeEdit(self, to_first=True):
+    def modeEdit(self, navigate=0):
         if len(self.library) == 0:
             self.modeAdd()
             return
@@ -404,8 +404,8 @@ class App(tk.Frame):
         self.buttons['ipBut'].config(state ='disabled')
         self.buttons['mode'].config(text = 'EDIT')
         self.buttons['store'].config(text = 'Store')
-        if to_first:
-            self.navigate(1)
+        if navigate in [1, 2, 3, 4]:
+            self.navigate(navigate)
         self.buttons['idEnt'].config(state='normal')
 
         for but in ['first', 'prev', 'next', 'idBut', 'move']:
