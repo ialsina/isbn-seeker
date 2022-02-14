@@ -17,6 +17,8 @@ class NotFoundError(Exception):
     pass
 class RequestError(Exception):
     pass
+class IsbnError(Exception):
+    pass
 
 isbn1 = '9984922901'
 
@@ -111,7 +113,7 @@ def fetch(isbn, tim=Timer(False)):
 
 
     if response.status_code == 404:
-        raise NotFoundError('Book not found')
+        raise NotFoundError('Book not found: {}'.format(isbn))
     elif response.status_code != 200:
         raise RequestError('Response error', status_code)
 
@@ -130,6 +132,9 @@ def fetch(isbn, tim=Timer(False)):
         data[key] = process_value(val, key in fields)
 
         tim.lap()
+
+    if 'error' in data:
+        raise NotFoundError(data.get('error'))
 
     return data
 
@@ -157,7 +162,7 @@ def get_data(isbn):
         print('Unexpected exit status', e)
         return {}
     except NotFoundError:
-        print('Book not found')
+        print('Book not found: {}'.format(isbn))
         if yesno('Manual input?'):
             data = manual()
     else:

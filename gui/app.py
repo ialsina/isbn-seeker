@@ -6,7 +6,7 @@ import json
 import time
 
 from .context import Book, Library, fields, Timer, get_data_gui, ask_book, fetch, \
-    test_ip, ip2barcode
+    test_ip, ip2barcode, IsbnError
 
 from .fields import DATA_FIELDS, LOC_FIELDS, JSON2FORM, FORM2JSON, SEPARATOR
 
@@ -260,7 +260,7 @@ class App(tk.Frame):
             self.tempdata[FORM2JSON['ISBN'][1]] = ''
         else:
             msgbox('err', 'ISBN must contain 10 or 13 digits', 'ISBN')
-            raise RuntimeError('ISBN')
+            raise IsbnError
             
 
         for key, val in self.entries.items():
@@ -437,7 +437,7 @@ class App(tk.Frame):
 
     def disconnect(self):
         self.info['camera'].config(text = 'Camera offline.')
-        self.info['data'].config(text = 'Introduce IBAN and click Search.')
+        self.info['data'].config(text = 'Introduce ISBN and click Search.')
         self.buttons['ipBut'].config(text = 'OFF')
         self.connected = 0
 
@@ -453,7 +453,7 @@ class App(tk.Frame):
         if len(isbn) not in [10, 13]:
             msgbox('err', 'ISBN must contain 10 or 13 digits', 'ISBN')
             self.info['data'].config(text='Invalid ISBN. Please retry.')
-            raise RuntimeError('ISBN')
+            raise IsbnError
 
         if isbn != isbn_in:
             entrywrite(self.entries['ISBN'], isbn)
@@ -562,8 +562,10 @@ class App(tk.Frame):
         except AttributeError:
             return
         if extension == 'csv':
+            print('Exporting csv')
             self.library.export_csv(path = path)
         elif extension == 'pickle':
+            print('Exporting pickle')
             self.library.export_obj(path = path)
         else:
             msgbox('err', 'Export supports extensions: .csv, .pickle', 'Export')
@@ -580,21 +582,24 @@ class App(tk.Frame):
 
 
     def capture(self):
-        if self.connected == 1:
-            barcode = ip2barcode(self.ip)
+        try:
+            if self.connected == 1:
+                barcode = ip2barcode(self.ip)
 
-            if barcode is None:
-                self.info['camera'].configure(text='Camera stream stopped')
-                self.disconnect()
-                return
+                if barcode is None:
+                    self.info['camera'].configure(text='Camera stream stopped')
+                    self.disconnect()
+                    return
 
-            if len(barcode) == 1:
-                print('\a', end='\r')
-                entrywrite(self.entries['ISBN'], barcode)
-                self.info['data'].config(text='ISBN found. Searching book data...')
-                self.connected = 2
-                self.update()
-                self.isbnGo()
+                if len(barcode) == 1:
+                    print('\a', end='\r')
+                    entrywrite(self.entries['ISBN'], barcode)
+                    self.info['data'].config(text='ISBN found. Searching book data...')
+                    self.connected = 2
+                    self.update()
+                    self.isbnGo()
+        except IsbnError:
+            print('ISBN error')
 
 
 if __name__ == '__main__':
